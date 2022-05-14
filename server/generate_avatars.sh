@@ -6,6 +6,14 @@
 #
 # Suggested location for PNG's are in $HOME/avatars, but works where ever.
 #
+# This script also requires imagemagick
+#   Debian: apt install imagemagick
+#   CentOS: yum install imagemagick
+#   Fedora: dnf install imagemagick
+#    MacOS: brew install imagemagick
+#
+
+# Generate 
 for filename in *.png; do
         convert "$filename" -colorspace rgb $(basename $filename .png).rgb
 done
