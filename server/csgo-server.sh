@@ -15,6 +15,7 @@ CSGO_PORT="27015"
 CSGO_TV_PORT="27020"
 CSGO_TV_PORT1="27021"
 CSGO_IP="0.0.0.0"
+CSGO_VERSION="" # Here specify version-number if you want to pin your CS:GO server to specific version
 PARAM_CSGO="+ip $CSGO_IP -port $CSGO_PORT -tv_port $CSGO_TV_PORT -tv_port1 $CSGO_TV_PORT1 +sv_setsteamaccount $CSGO_SERVERTOKEN -addhltv1"
 
 function install {
@@ -23,110 +24,84 @@ function install {
     if ! type wget > /dev/null 2>&1; then echo "ERROR: You need wget for this script (try apt-get install wget)"; exit 1; fi
     if ! type tar > /dev/null 2>&1; then echo "ERROR: You need tar for this script (try apt-get install tar)"; exit 1; fi
 
-    # Download steamcmd
-    echo "Downloading steamcmd from $STEAMCMD_URL"
-    if [ $(whoami) = "root" ]
-        then
-            echo "dont run this script as root"
-        else
-            mkdir -p $DIR_STEAMCMD
-            cd "$DIR_STEAMCMD" ; wget ${STEAMCMD_URL}
-    fi
-    if [ "$?" -ne "0" ]
-    then
-        echo "ERROR: Unable to download steamcmd"
+    if [ $(id -u) = 0 ]; then
+        echo "Dont run this script as root."
         exit 1
     fi
 
-    # Extract it
+    echo "Downloading steamcmd from $STEAMCMD_URL"
+    mkdir -p ${DIR_STEAMCMD}
+    cd ${DIR_STEAMCMD} ; wget ${STEAMCMD_URL}
+
     echo "Extracting and removing the archive"
-    if [ $(whoami) = "root" ]
-    then
-        echo "dont run this script as root"
-    else
-        cd ${DIR_STEAMCMD} ; tar xzvf ./steamcmd_linux.tar.gz
-        cd ${DIR_STEAMCMD} ; rm ./steamcmd_linux.tar.gz
-    fi
+    cd ${DIR_STEAMCMD} ; tar xzvf ./steamcmd_linux.tar.gz
+    cd ${DIR_STEAMCMD} ; rm ./steamcmd_linux.tar.gz
 
     # Did it install?
-    if [ ! -e "$DIR_STEAMCMD/steamcmd.sh" ]
-    then
+    if [ ! -e "$DIR_STEAMCMD/steamcmd.sh" ]; then
         echo "ERROR: Failed to install steamcmd"
         exit 1
     fi
 
     # Create runscript file for autoupdate
     echo "Create runscript file '$SCRIPT_STEAMCMD' for autoupdate..."
-    cd "$DIR_STEAMCMD"
+    cd ${DIR_STEAMCMD}
     echo "force_install_dir $DIR_ROOT" > "$SCRIPT_STEAMCMD"
     echo "login anonymous" >> "$SCRIPT_STEAMCMD"
     echo "app_update 740" >> "$SCRIPT_STEAMCMD"
-    echo "quit" >> "$SCRIPT_STEAMCMD"
     chmod 600 "$SCRIPT_STEAMCMD"
 
     # Create symlink for steamclient.so
-    if [ ! -d "$HOME/.steam/sdk32" ]
-        then
-            echo "Creating folder '$HOME/.steam/sdk32'"
-        if [ $(whoami) = "root" ]
-            then
-                echo "dont run this script as root"
-            else
-                mkdir -p "$HOME/.steam/sdk32"
-        fi
-    fi
-    if [ ! -f "$HOME/.steam/sdk32/steamclient.so" ]
-        then
-            echo "Creating symlink for steamclient.so..."
-        if [ $(whoami) = "root" ]
-            then
-                echo "dont run this script as root"
-            else
-                ln -sf "$DIR_STEAMCMD/linux32/steamclient.so" "$HOME/.steam/sdk32/"
-        fi
-    fi
-
-    # Create the game root
-    if [ ! -d "$DIR_ROOT" ]
-        then
-            echo "$DIR_ROOT does not exist, creating..."
-        if [ $(whoami) = "root" ]
-            then
-                echo "dont run this script as root"
-            else
-                echo "Directory $DIR_ROOT created."
-                mkdir -p "$DIR_ROOT"
-        fi
-    fi
-    if [ ! -d "$DIR_ROOT" ]; then echo "ERROR: Could not create $DIR_ROOT"; exit 1; fi
-
-    # Install CS:GO server
-    if [ $(whoami) = "root" ]
-        then
-            echo "dont run this script as root"
+    if [ -d "$HOME/.steam/sdk32" ]; then
+            echo "Directory already exists, skipping creation."
         else
-            cd "$DIR_STEAMCMD"
-            ./steamcmd.sh +runscript $SCRIPT_STEAMCMD
+            echo "Directory $HOME/.steam/sdk32 created."
+            mkdir -p "$HOME/.steam/sdk32"
     fi
+    if [ -f "$HOME/.steam/sdk32/steamclient.so" ]; then
+            echo "Symling for steamclient.so already exists."
+        else
+            echo "Creating symlink for steamclient.so."
+            ln -sf "$DIR_STEAMCMD/linux32/steamclient.so" "$HOME/.steam/sdk32/"
+    fi
+
+    # Create directory for CS:GO server
+    if [ -d "$DIR_ROOT" ]; then
+            echo "Directory {$DIR_ROOT} already exists, skipping creation."
+            exit 1
+        else
+            echo "Directory {$DIR_ROOT} created."
+            mkdir -p "$DIR_ROOT"
+    fi
+
+    cd "$DIR_STEAMCMD"
+    ./steamcmd.sh +runscript $SCRIPT_STEAMCMD +quit
 
 }
 
 function update {
-    if [ $(whoami) = "root" ]
-        then
-            echo "dont run this script as root"
-        else
-            cd "$DIR_STEAMCMD"
-            ./steamcmd.sh +runscript $SCRIPT_STEAMCMD
+    if [ $(id -u) = 0 ]; 
+	    then
+		    echo "Dont run this script as root."
+		    exit 1
     fi
 
+    if [ -z "$CSGO_VERSION" ]
+        then
+            cd "$DIR_STEAMCMD"
+            ./steamcmd.sh +runscript $SCRIPT_STEAMCMD +quit
+        else
+            cd "$DIR_STEAMCMD"
+            ./steamcmd.sh +runscript $SCRIPT_STEAMCMD -beta $CSGO_VERSION +quit
+    fi
 }
 
 function start {
-    if [ $(whoami) = "root" ]
-        then
-            echo "dont run this script as root"
-        else
+    if [ $(id -u) = 0 ]
+	    then
+		    echo "Dont run this script as root."
+		    exit 1
+	    else
             cd "$DIR_STEAMCMD"
             rm -f screenlog.*
             screen -L -AmdS $SERVER_NAME $BIN_SRCDS -game csgo -console -usercon +game_type 0 +game_mode 1 -maxplayers_override 16 +mapgroup mg_bomb +map de_dust2 -tickrate 128 $PARAM_CSGO
@@ -135,9 +110,10 @@ function start {
 
 function stop {
     if ! status; then echo "$SERVER_NAME could not be found. Probably not running."; exit 1; fi
-    if [ $(whoami) = "root" ]
-        then
-            echo "dont run this script as root"
+    if [ $(id -u) = 0 ]
+	    then
+		    echo "Dont run this script as root."
+		    exit 1
         else
             screen -r $(screen -ls | awk -F . "/\.$SERVER_NAME\t/ {print $1}" | awk '{print $1}') -X quit
             rm -f "$DIR_ROOT/screenlog.*"
@@ -145,9 +121,10 @@ function stop {
 }
 
 function status {
-    if [ $(whoami) = "root" ]
-        then
-            echo "dont run this script as root"
+    if [ $(id -u) = 0 ]
+	    then
+		    echo "Dont run this script as root."
+		    exit 1
         else
             screen -ls | grep [.]${SERVER_NAME}[[:space:]] > /dev/null
     fi
@@ -156,9 +133,10 @@ function status {
 function console {
     if ! status; then echo "$SERVER_NAME could not be found. Probably not running."; exit 1; fi
 
-    if [ $(whoami) = "root" ]
-        then
-            echo "dont run this script as root"
+    if [ $(id -u) = 0 ]
+	    then
+		    echo "Dont run this script as root."
+		    exit 1
         else
             screen -r $(screen -ls | awk -F . "/\.$SERVER_NAME\t/ {print $1}" | awk '{print $1}')
     fi
