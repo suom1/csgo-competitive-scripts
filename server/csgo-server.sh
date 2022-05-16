@@ -19,13 +19,13 @@ CSGO_VERSION="" # Here specify version-number if you want to pin your CS:GO serv
 PARAM_CSGO="+ip $CSGO_IP -port $CSGO_PORT -tv_port $CSGO_TV_PORT -tv_port1 $CSGO_TV_PORT1 +sv_setsteamaccount $CSGO_SERVERTOKEN -addhltv1"
 
 function install {
-    if ! type awk > /dev/null 2>&1; then echo "ERROR: You need awk for this script (try apt-get install awk)"; exit 1; fi
-    if ! type screen > /dev/null 2>&1; then echo "ERROR: You need screen for this script (try apt-get install screen)"; exit 1; fi
-    if ! type wget > /dev/null 2>&1; then echo "ERROR: You need wget for this script (try apt-get install wget)"; exit 1; fi
-    if ! type tar > /dev/null 2>&1; then echo "ERROR: You need tar for this script (try apt-get install tar)"; exit 1; fi
+    if ! type awk > /dev/null 2>&1; then echo "ERROR: You need awk for this script."; exit 1; fi
+    if ! type screen > /dev/null 2>&1; then echo "ERROR: You need screen for this script."; exit 1; fi
+    if ! type wget > /dev/null 2>&1; then echo "ERROR: You need wget for this script."; exit 1; fi
+    if ! type tar > /dev/null 2>&1; then echo "ERROR: You need tar for this script."; exit 1; fi
 
     if [ $(id -u) = 0 ]; then
-        echo "Dont run this script as root."
+        echo "ERROR: Dont run this script as root."
         exit 1
     fi
 
@@ -82,7 +82,7 @@ function install {
 function update {
     if [ $(id -u) = 0 ]; 
 	    then
-		    echo "Dont run this script as root."
+		    echo "ERROR: Dont run this script as root."
 		    exit 1
     fi
 
@@ -99,7 +99,7 @@ function update {
 function start {
     if [ $(id -u) = 0 ]
 	    then
-		    echo "Dont run this script as root."
+		    echo "ERROR: Dont run this script as root."
 		    exit 1
 	    else
             cd "$DIR_STEAMCMD"
@@ -112,7 +112,7 @@ function stop {
     if ! status; then echo "$SERVER_NAME could not be found. Probably not running."; exit 1; fi
     if [ $(id -u) = 0 ]
 	    then
-		    echo "Dont run this script as root."
+		    echo "ERROR: Dont run this script as root."
 		    exit 1
         else
             screen -r $(screen -ls | awk -F . "/\.$SERVER_NAME\t/ {print $1}" | awk '{print $1}') -X quit
@@ -123,7 +123,7 @@ function stop {
 function status {
     if [ $(id -u) = 0 ]
 	    then
-		    echo "Dont run this script as root."
+		    echo "ERROR: Dont run this script as root."
 		    exit 1
         else
             screen -ls | grep [.]${SERVER_NAME}[[:space:]] > /dev/null
@@ -135,7 +135,7 @@ function console {
 
     if [ $(id -u) = 0 ]
 	    then
-		    echo "Dont run this script as root."
+		    echo "ERROR: Dont run this script as root."
 		    exit 1
         else
             screen -r $(screen -ls | awk -F . "/\.$SERVER_NAME\t/ {print $1}" | awk '{print $1}')
