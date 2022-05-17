@@ -5,6 +5,8 @@
 SERVER_NAME="csgo-server"
 DIR_ROOT="$HOME/$SERVER_NAME"
 DIR_STEAMCMD="$HOME/steamcmd"
+DIR_CONFIG="$DIR_ROOT/csgo/cfg"
+DIR_CONFIG_TMP="/tmp/csgo-configs"
 BIN_SRCDS="$DIR_ROOT/srcds_run"
 SCRIPT_STEAMCMD="$DIR_STEAMCMD/$SERVER_NAME.txt"
 STEAMCMD_URL="https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz"
@@ -18,16 +20,16 @@ CSGO_IP="0.0.0.0"
 CSGO_VERSION="" # Here specify version-number if you want to pin your CS:GO server to specific version
 PARAM_CSGO="+ip $CSGO_IP -port $CSGO_PORT -tv_port $CSGO_TV_PORT -tv_port1 $CSGO_TV_PORT1 +sv_setsteamaccount $CSGO_SERVERTOKEN -addhltv1"
 
+if [ $(id -u) = 0 ]; then
+    echo "ERROR: Dont run this script as root."
+    exit 1
+fi
+
 function install {
     if ! type awk > /dev/null 2>&1; then echo "ERROR: You need awk for this script."; exit 1; fi
     if ! type screen > /dev/null 2>&1; then echo "ERROR: You need screen for this script."; exit 1; fi
     if ! type wget > /dev/null 2>&1; then echo "ERROR: You need wget for this script."; exit 1; fi
     if ! type tar > /dev/null 2>&1; then echo "ERROR: You need tar for this script."; exit 1; fi
-
-    if [ $(id -u) = 0 ]; then
-        echo "ERROR: Dont run this script as root."
-        exit 1
-    fi
 
     echo "Downloading steamcmd from $STEAMCMD_URL"
     mkdir -p ${DIR_STEAMCMD}
@@ -80,12 +82,6 @@ function install {
 }
 
 function update {
-    if [ $(id -u) = 0 ]; 
-	    then
-		    echo "ERROR: Dont run this script as root."
-		    exit 1
-    fi
-
     if [ -z "$CSGO_VERSION" ]
         then
             cd "$DIR_STEAMCMD"
@@ -97,54 +93,58 @@ function update {
 }
 
 function start {
-    if [ $(id -u) = 0 ]
-	    then
-		    echo "ERROR: Dont run this script as root."
-		    exit 1
-	    else
-            cd "$DIR_STEAMCMD"
-            rm -f screenlog.*
-            screen -L -AmdS $SERVER_NAME $BIN_SRCDS -game csgo -console -usercon +game_type 0 +game_mode 1 -maxplayers_override 16 +mapgroup mg_bomb +map de_dust2 -tickrate 128 $PARAM_CSGO
-    fi
+    cd "$DIR_STEAMCMD"
+    rm -f screenlog.*
+    screen -L -AmdS $SERVER_NAME $BIN_SRCDS -game csgo -console -usercon +game_type 0 +game_mode 1 -maxplayers_override 16 +mapgroup mg_bomb +map de_dust2 -tickrate 128 $PARAM_CSGO
 }
 
 function stop {
     if ! status; then echo "$SERVER_NAME could not be found. Probably not running."; exit 1; fi
-    if [ $(id -u) = 0 ]
-	    then
-		    echo "ERROR: Dont run this script as root."
-		    exit 1
-        else
-            screen -r $(screen -ls | awk -F . "/\.$SERVER_NAME\t/ {print $1}" | awk '{print $1}') -X quit
-            rm -f "$DIR_ROOT/screenlog.*"
-    fi
+
+    screen -r $(screen -ls | awk -F . "/\.$SERVER_NAME\t/ {print $1}" | awk '{print $1}') -X quit
+    rm -f "$DIR_ROOT/screenlog.*"
 }
 
 function status {
-    if [ $(id -u) = 0 ]
-	    then
-		    echo "ERROR: Dont run this script as root."
-		    exit 1
-        else
-            screen -ls | grep [.]${SERVER_NAME}[[:space:]] > /dev/null
-    fi
+    screen -ls | grep [.]${SERVER_NAME}[[:space:]] > /dev/null
 }
 
 function console {
     if ! status; then echo "$SERVER_NAME could not be found. Probably not running."; exit 1; fi
 
-    if [ $(id -u) = 0 ]
-	    then
-		    echo "ERROR: Dont run this script as root."
-		    exit 1
-        else
-            screen -r $(screen -ls | awk -F . "/\.$SERVER_NAME\t/ {print $1}" | awk '{print $1}')
-    fi
+    screen -r $(screen -ls | awk -F . "/\.$SERVER_NAME\t/ {print $1}" | awk '{print $1}')
+}
+
+function config-install {
+    if ! type git > /dev/null 2>&1; then echo "ERROR: You need git for this script."; exit 1; fi
+
+    git clone https://github.com/suom1/csgo-competitive-config.git ${DIR_CONFIG_TMP} --quiet
+    cp ${DIR_CONFIG_TMP}/server.cfg ${DIR_CONFIG}/server.cfg
+    cp ${DIR_CONFIG_TMP}/dynamic.cfg ${DIR_CONFIG}/dynamic.cfg
+    cp ${DIR_CONFIG_TMP}/live.cfg ${DIR_CONFIG}/live.cfg
+    cp ${DIR_CONFIG_TMP}/gamemode_competitive_server.cfg ${DIR_CONFIG}/gamemode_competitive_server.cfg
+    cp ${DIR_CONFIG_TMP}/nicknames.txt ${DIR_CONFIG}/nicknames.txt
+    rm -rf ${DIR_CONFIG_TMP}
+}
+
+function config-update {
+    if ! type git > /dev/null 2>&1; then echo "ERROR: You need git for this script."; exit 1; fi
+
+    git clone https://github.com/suom1/csgo-competitive-config.git ${DIR_CONFIG_TMP} --quiet
+    cp ${DIR_CONFIG_TMP}/server.cfg ${DIR_CONFIG}/server.cfg
+    cp ${DIR_CONFIG_TMP}/live.cfg ${DIR_CONFIG}/live.cfg
+    cp ${DIR_CONFIG_TMP}/gamemode_competitive_server.cfg ${DIR_CONFIG}/gamemode_competitive_server.cfg
+    cp ${DIR_CONFIG_TMP}/nicknames.txt ${DIR_CONFIG}/nicknames.txt
+    rm -rf ${DIR_CONFIG_TMP}
 }
 
 function usage {
-    echo "Usage: csgo-server {start|stop|status|restart|console|update|install}"
+    echo "Start/Stop Commands:"
+    echo "csgo-server.sh {start | stop | status | restart | console}"
     echo "On console, press CTRL+A then D to stop the screen without stopping the server."
+    echo " "
+    echo "Install/Update Commands:"
+    echo "csgo-server.sh {install | config-install | update | config-update}"
 }
 
 case "$1" in
@@ -191,6 +191,16 @@ case "$1" in
     install)
         echo "Installing $SERVER_NAME..."
         install
+    ;;
+
+    config-install)
+        echo "Installing configs for $SERVER_NAME..."
+        config-install
+    ;;
+
+    config-update)
+        echo "Updating configs for $SERVER_NAME..."
+        config-update
     ;;
 
     *)
