@@ -76,9 +76,14 @@ function install {
             mkdir -p "$DIR_ROOT"
     fi
 
-    cd "$DIR_STEAMCMD"
-    ./steamcmd.sh +runscript $SCRIPT_STEAMCMD +quit
-
+    if [ -z "$CSGO_VERSION" ]
+        then
+            cd "$DIR_STEAMCMD"
+            ./steamcmd.sh +runscript $SCRIPT_STEAMCMD +quit
+        else
+            cd "$DIR_STEAMCMD"
+            ./steamcmd.sh +runscript $SCRIPT_STEAMCMD -beta $CSGO_VERSION +quit
+    fi
 }
 
 function update {
