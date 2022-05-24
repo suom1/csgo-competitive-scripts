@@ -124,11 +124,11 @@ function config-install {
     if ! type git > /dev/null 2>&1; then echo "ERROR: You need git for this script."; exit 1; fi
 
     git clone https://github.com/suom1/csgo-competitive-config.git ${DIR_CONFIG_TMP} --quiet
-    cp ${DIR_CONFIG_TMP}/server.cfg ${DIR_CONFIG}/server.cfg
-    cp ${DIR_CONFIG_TMP}/dynamic.cfg ${DIR_CONFIG}/dynamic.cfg
-    cp ${DIR_CONFIG_TMP}/live.cfg ${DIR_CONFIG}/live.cfg
-    cp ${DIR_CONFIG_TMP}/gamemode_competitive_server.cfg ${DIR_CONFIG}/gamemode_competitive_server.cfg
-    cp ${DIR_CONFIG_TMP}/nicknames.txt ${DIR_CONFIG}/nicknames.txt
+    cp ${DIR_CONFIG_TMP}/server/server.cfg ${DIR_CONFIG}/server.cfg
+    cp ${DIR_CONFIG_TMP}/server/dynamic.cfg ${DIR_CONFIG}/dynamic.cfg
+    cp ${DIR_CONFIG_TMP}/server/live.cfg ${DIR_CONFIG}/live.cfg
+    cp ${DIR_CONFIG_TMP}/server/gamemode_competitive_server.cfg ${DIR_CONFIG}/gamemode_competitive_server.cfg
+    cp ${DIR_CONFIG_TMP}/server/nicknames.txt ${DIR_CONFIG}/nicknames.txt
     rm -rf ${DIR_CONFIG_TMP}
 }
 
@@ -136,10 +136,10 @@ function config-update {
     if ! type git > /dev/null 2>&1; then echo "ERROR: You need git for this script."; exit 1; fi
 
     git clone https://github.com/suom1/csgo-competitive-config.git ${DIR_CONFIG_TMP} --quiet
-    cp ${DIR_CONFIG_TMP}/server.cfg ${DIR_CONFIG}/server.cfg
-    cp ${DIR_CONFIG_TMP}/live.cfg ${DIR_CONFIG}/live.cfg
-    cp ${DIR_CONFIG_TMP}/gamemode_competitive_server.cfg ${DIR_CONFIG}/gamemode_competitive_server.cfg
-    cp ${DIR_CONFIG_TMP}/nicknames.txt ${DIR_CONFIG}/nicknames.txt
+    cp ${DIR_CONFIG_TMP}/server/server.cfg ${DIR_CONFIG}/server.cfg
+    cp ${DIR_CONFIG_TMP}/server/live.cfg ${DIR_CONFIG}/live.cfg
+    cp ${DIR_CONFIG_TMP}/server/gamemode_competitive_server.cfg ${DIR_CONFIG}/gamemode_competitive_server.cfg
+    cp ${DIR_CONFIG_TMP}/server/nicknames.txt ${DIR_CONFIG}/nicknames.txt
     rm -rf ${DIR_CONFIG_TMP}
 }
 
